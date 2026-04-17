@@ -4,17 +4,35 @@
 
 import { Chess } from 'chess.js';
 
-// Classify how good a player's move was based on evaluation change
+// Classify how good a player's move was based on evaluation change.
+// Thresholds are intentionally lenient — a move only gets tagged as a blunder
+// if the eval actually swings meaningfully against the player. At low bot
+// ELOs, the eval often spikes after a bot mistake, and a "fine but not
+// optimal" player response looks artificially bad with tight thresholds.
 function classifyMove(evalBefore, evalAfter, isPlayerWhite) {
   // Normalize: positive = good for player
   const before = isPlayerWhite ? evalBefore : -evalBefore;
   const after = isPlayerWhite ? evalAfter : -evalAfter;
-  const delta = after - before;
 
-  if (delta > 80) return 'brilliant';
-  if (delta > -15) return 'good';
-  if (delta > -50) return 'inaccuracy';
-  if (delta > -150) return 'mistake';
+  // Clamp mate-score sentinels (±10000) so a non-mate move near a mate
+  // doesn't register as a -10000 cp blunder.
+  const clampedBefore = Math.max(-1500, Math.min(1500, before));
+  const clampedAfter = Math.max(-1500, Math.min(1500, after));
+  const delta = clampedAfter - clampedBefore;
+
+  // If the player is still clearly winning after the move, it's at worst an
+  // inaccuracy — you haven't "blundered" if you're still up a piece.
+  if (clampedAfter > 250) {
+    if (delta > 60) return 'brilliant';
+    if (delta > -120) return 'good';
+    if (delta > -350) return 'inaccuracy';
+    return 'mistake';
+  }
+
+  if (delta > 120) return 'brilliant';
+  if (delta > -60) return 'good';
+  if (delta > -150) return 'inaccuracy';
+  if (delta > -300) return 'mistake';
   return 'blunder';
 }
 
@@ -410,6 +428,23 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Piece values for simple material math.
+const pieceValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
+
+// A capture is "safe" if it wins material outright or trades up. Used to
+// avoid flagging obviously-good captures (like taking an attacker) as blunders
+// when the eval classifier is over-sensitive.
+function isSafeCapture(move, chessBefore, chessAfter) {
+  if (!move || !move.captured) return false;
+  const gained = pieceValue[move.captured] || 0;
+  const risked = pieceValue[move.piece] || 0;
+  if (gained >= risked) return true;
+  // Otherwise, safe only if the capturing piece can't be recaptured.
+  const recaptures = chessAfter.moves({ verbose: true })
+    .filter(m => m.to === move.to && m.captured);
+  return recaptures.length === 0;
+}
+
 // Main commentary generation function
 export function generateCommentary({
   chess,
@@ -426,7 +461,15 @@ export function generateCommentary({
 
   if (isPlayerMove) {
     // Comment on the player's move quality
-    const quality = classifyMove(evalBefore, evalAfter, isPlayerWhite);
+    let quality = classifyMove(evalBefore, evalAfter, isPlayerWhite);
+
+    // Never flag castling or a safe capture as a mistake/blunder — these are
+    // almost always good moves, and false-positive alerts confuse learners.
+    const isCastle = features.some(f => f.type === 'castle');
+    const safeCapture = move.captured && isSafeCapture(move, chessBefore, chess);
+    if ((isCastle || safeCapture) && (quality === 'blunder' || quality === 'mistake' || quality === 'inaccuracy')) {
+      quality = 'good';
+    }
 
     // For blunders and mistakes, use piece-specific commentary
     if ((quality === 'blunder' || quality === 'mistake') && chessBefore) {
