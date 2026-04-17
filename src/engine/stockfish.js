@@ -1,6 +1,8 @@
 // Stockfish Web Worker wrapper
 // Manages two engine instances: one for the bot (limited strength) and one for analysis (max strength)
 
+import { Chess } from 'chess.js';
+
 class StockfishEngine {
   constructor() {
     this.worker = null;
@@ -212,22 +214,51 @@ class EngineManager {
     else if (elo <= 2500) depth = 15;
     else depth = 18;
 
-    // At very low ELOs, occasionally make a random legal move
-    if (elo <= 300 && Math.random() < 0.3) {
-      return this._getRandomMove(fen);
-    }
-    if (elo <= 500 && Math.random() < 0.15) {
-      return this._getRandomMove(fen);
+    // Beginner play: blend random legal moves with engine moves.
+    // Stockfish's UCI_LimitStrength floor is ~1320, and even Skill 0 is too
+    // strong for true beginners. So below ~1200 we mix in random moves.
+    let randomChance = 0;
+    if (elo <= 150) randomChance = 0.95;
+    else if (elo <= 250) randomChance = 0.85;
+    else if (elo <= 400) randomChance = 0.65;
+    else if (elo <= 600) randomChance = 0.45;
+    else if (elo <= 800) randomChance = 0.25;
+    else if (elo <= 1000) randomChance = 0.12;
+    else if (elo <= 1200) randomChance = 0.05;
+
+    if (randomChance > 0 && Math.random() < randomChance) {
+      const randomMove = this._pickRandomLegalMove(fen, elo);
+      if (randomMove) return randomMove;
     }
 
     return this.botEngine.getBestMove(fen, depth);
   }
 
-  // Pick a random legal move (for very low ELO blundering)
-  async _getRandomMove(fen) {
-    // We need chess.js here but it's a frontend dep — use engine at depth 1
-    // and rely on Skill Level 0 + depth 1 to produce weak moves
-    return this.botEngine.getBestMove(fen, 1);
+  // Pick a random legal move. At slightly higher ELO, bias toward
+  // "obvious" moves (captures) so the bot still grabs free pieces sometimes.
+  _pickRandomLegalMove(fen, elo) {
+    try {
+      const chess = new Chess(fen);
+      const moves = chess.moves({ verbose: true });
+      if (moves.length === 0) return null;
+
+      // Below ~300 ELO: pure random — beginners hang pieces and miss captures.
+      // Above that: 50% chance to prefer a capture if one exists.
+      let pick;
+      if (elo > 300 && Math.random() < 0.5) {
+        const captures = moves.filter(m => m.captured);
+        pick = captures.length > 0
+          ? captures[Math.floor(Math.random() * captures.length)]
+          : moves[Math.floor(Math.random() * moves.length)];
+      } else {
+        pick = moves[Math.floor(Math.random() * moves.length)];
+      }
+
+      const uci = pick.from + pick.to + (pick.promotion || '');
+      return { move: uci, eval: 0, depth: 0, pv: uci };
+    } catch (e) {
+      return null;
+    }
   }
 
   async analyzePosition(fen) {
