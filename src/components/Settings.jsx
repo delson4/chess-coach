@@ -63,11 +63,11 @@ export default function Settings({ settings, onUpdateSettings, onBack }) {
         <section className="settings-section">
           <h2>About</h2>
           <p className="about-text">
-            Chess Coach is a self-hosted chess training app powered by Stockfish.
+            Simple Chess is a self-hosted chess training app powered by Stockfish.
             Play against the engine at any strength from ELO 100 to 3000 while
             getting maximum-strength coaching advice from your chosen chess piece coach.
           </p>
-          <p className="version-text">v1.2.3</p>
+          <p className="version-text">v1.2.4</p>
         </section>
       </div>
     </div>

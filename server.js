@@ -79,7 +79,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Chess Coach is running at:`);
+  console.log(`Simple Chess is running at:`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Network: http://0.0.0.0:${PORT}`);
   console.log(`  TTS:     Edge neural voices (requires internet)`);

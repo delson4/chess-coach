@@ -18,7 +18,7 @@ export default function CoachSelect({ onStartGame, bookmarkedElos, onBookmarkElo
   return (
     <div className="coach-select">
       <header className="coach-select-header">
-        <h1>Chess Coach</h1>
+        <h1>Simple Chess</h1>
         <p className="subtitle">Choose your coach and start playing</p>
         <button className="settings-btn" onClick={onOpenSettings} title="Settings">
           &#9881;
