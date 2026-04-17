@@ -9,7 +9,10 @@ export default function CoachSelect({ onStartGame, bookmarkedElos, onBookmarkElo
 
   const handleStart = () => {
     if (!selectedCoach || !engineReady) return;
-    onStartGame(selectedCoach, elo, playerColor);
+    const resolvedColor = playerColor === 'random'
+      ? (Math.random() > 0.5 ? 'w' : 'b')
+      : playerColor;
+    onStartGame(selectedCoach, elo, resolvedColor);
   };
 
   return (
@@ -69,7 +72,7 @@ export default function CoachSelect({ onStartGame, bookmarkedElos, onBookmarkElo
             </button>
             <button
               className={`color-btn ${playerColor === 'random' ? 'active' : ''}`}
-              onClick={() => setPlayerColor(Math.random() > 0.5 ? 'w' : 'b')}
+              onClick={() => setPlayerColor('random')}
             >
               <span className="color-piece">&#10070;</span>
               Random
