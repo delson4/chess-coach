@@ -6,7 +6,7 @@ A self-hosted chess web app. React + Vite frontend, Node.js + Express backend, S
 
 - Always commit and push directly to the **main** branch. Never create separate branches.
 - After pushing, the Mac Mini auto-pulls, rebuilds, and restarts within 30 seconds.
-- Bump the version in `src/components/Settings.jsx` whenever you make changes.
+- Bump the version in `src/components/Settings.jsx` whenever you make changes. **Always tell the user the new version number** so they can verify the deploy by checking Settings in the app.
 
 ### Key files
 
