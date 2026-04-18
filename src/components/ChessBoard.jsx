@@ -40,6 +40,20 @@ export default function ChessBoard({
         if (isLastMoveFrom || isLastMoveTo) className += ' last-move';
         if (isInCheck) className += ' in-check';
 
+        // If this square is the destination of the last move, compute the
+        // offset (in square units, on the visible board) so the piece can
+        // glide in from its origin square instead of teleporting.
+        let glideFrom = null;
+        if (isLastMoveTo && piece && lastMove?.from) {
+          const fromF = displayFiles.indexOf(lastMove.from[0]);
+          const fromR = displayRanks.indexOf(lastMove.from[1]);
+          const toF = displayFiles.indexOf(lastMove.to[0]);
+          const toR = displayRanks.indexOf(lastMove.to[1]);
+          if (fromF >= 0 && fromR >= 0 && toF >= 0 && toR >= 0) {
+            glideFrom = { dx: fromF - toF, dy: fromR - toR };
+          }
+        }
+
         squares.push(
           <div
             key={square}
@@ -48,7 +62,11 @@ export default function ChessBoard({
             data-square={square}
           >
             {piece && (
-              <PieceSVG piece={piece.type} color={piece.color} />
+              <PieceSVG
+                piece={piece.type}
+                color={piece.color}
+                glideFrom={glideFrom}
+              />
             )}
             {isLegal && (
               <div className={`legal-dot ${piece ? 'legal-capture' : ''}`} />

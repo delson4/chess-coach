@@ -504,7 +504,24 @@ body {
   height: calc(var(--sq-size) * 0.85);
   pointer-events: none;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-  transition: transform 0.1s;
+}
+
+@keyframes piece-glide {
+  from {
+    transform: translate(
+      calc(var(--glide-dx, 0) * var(--sq-size)),
+      calc(var(--glide-dy, 0) * var(--sq-size))
+    );
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+.piece-svg.gliding {
+  animation: piece-glide 0.22s ease-out;
+  position: relative;
+  z-index: 5;
 }
 
 /* Material count */

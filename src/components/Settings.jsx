@@ -67,7 +67,7 @@ export default function Settings({ settings, onUpdateSettings, onBack }) {
             Play against the engine at any strength from ELO 100 to 3000 while
             getting maximum-strength coaching advice from your chosen chess piece coach.
           </p>
-          <p className="version-text">v1.2.5</p>
+          <p className="version-text">v1.2.6</p>
         </section>
       </div>
     </div>

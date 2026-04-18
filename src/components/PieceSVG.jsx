@@ -117,17 +117,23 @@ const pieces = {
   ),
 };
 
-export default function PieceSVG({ piece, color, size = 45 }) {
+export default function PieceSVG({ piece, color, size = 45, glideFrom }) {
   const key = color + piece;
   const svgContent = pieces[key];
   if (!svgContent) return null;
+
+  const style = glideFrom
+    ? { '--glide-dx': glideFrom.dx, '--glide-dy': glideFrom.dy }
+    : undefined;
+  const className = glideFrom ? 'piece-svg gliding' : 'piece-svg';
 
   return (
     <svg
       viewBox="0 0 45 45"
       width={size}
       height={size}
-      className="piece-svg"
+      className={className}
+      style={style}
     >
       {svgContent}
     </svg>
