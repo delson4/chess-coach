@@ -5,7 +5,7 @@ A self-hosted chess web app. React + Vite frontend, Node.js + Express backend, S
 ### Deployment
 
 - Always commit and push directly to the **main** branch. Never create separate branches.
-- After pushing, the Mac Mini auto-pulls, rebuilds, and restarts within 30 seconds.
+- After pushing, Railway auto-deploys within 30 seconds at https://my-chess-coach.up.railway.app.
 - Bump the version in `src/components/Settings.jsx` whenever you make changes. **Always tell the user the new version number** so they can verify the deploy by checking Settings in the app.
 
 ### Key files
