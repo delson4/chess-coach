@@ -89,9 +89,6 @@ export default function GameBoard({
               &#9654; New Game
             </button>
           )}
-          <button className="control-btn" onClick={onNewGame}>
-            &#8962; Menu
-          </button>
           <button className="control-btn" onClick={onOpenSettings} title="Settings">
             &#9881;
           </button>
