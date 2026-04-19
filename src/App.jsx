@@ -31,6 +31,16 @@ export default function App() {
     localStorage.setItem('chess-coach-settings', JSON.stringify(settings));
   }, [settings]);
 
+  // Apply board theme to the document so the [data-theme=...] CSS rules match.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.boardTheme && settings.boardTheme !== 'classic') {
+      root.setAttribute('data-theme', settings.boardTheme);
+    } else {
+      root.removeAttribute('data-theme');
+    }
+  }, [settings.boardTheme]);
+
   const handleStartGame = (coach, elo, color) => {
     gameState.startGame(coach, elo, color);
     setScreen('game');
