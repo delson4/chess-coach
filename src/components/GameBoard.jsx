@@ -3,6 +3,7 @@ import ChessBoard from './ChessBoard.jsx';
 import CoachPanel from './CoachPanel.jsx';
 import MoveHistory from './MoveHistory.jsx';
 import MaterialCount from './MaterialCount.jsx';
+import PieceSVG from './PieceSVG.jsx';
 
 export default function GameBoard({
   game,
@@ -18,6 +19,8 @@ export default function GameBoard({
   isThinking,
   currentElo,
   currentCoach,
+  promotionPending,
+  choosePromotion,
   handleSquareClick,
   resign,
   undoMove,
@@ -107,6 +110,25 @@ export default function GameBoard({
           playerColor={playerColor}
         />
       </div>
+
+      {promotionPending && (
+        <div className="promotion-overlay">
+          <div className="promotion-modal">
+            <div className="promotion-title">Promote to:</div>
+            <div className="promotion-choices">
+              {['q', 'r', 'b', 'n'].map(type => (
+                <button
+                  key={type}
+                  className="promotion-choice"
+                  onClick={() => choosePromotion(type)}
+                >
+                  <PieceSVG piece={type} color={playerColor} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

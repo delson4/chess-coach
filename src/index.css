@@ -1075,3 +1075,58 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text);
 }
+
+/* ===== PROMOTION MODAL ===== */
+.promotion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.promotion-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-hover);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.promotion-title {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.promotion-choices {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.promotion-choice {
+  width: calc(var(--sq-size) * 1.1);
+  height: calc(var(--sq-size) * 1.1);
+  background: var(--bg-surface);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.promotion-choice:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.promotion-choice .piece-svg {
+  width: 85%;
+  height: 85%;
+}

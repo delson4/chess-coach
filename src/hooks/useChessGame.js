@@ -19,6 +19,7 @@ export default function useChessGame() {
   const [currentCoach, setCurrentCoach] = useState(null);
   const [engineReady, setEngineReady] = useState(false);
   const [evalBefore, setEvalBefore] = useState(0);
+  const [promotionPending, setPromotionPending] = useState(null); // { from, to } when player needs to pick a piece
 
   const engineRef = useRef(null);
   const gameRef = useRef(game);
@@ -140,6 +141,61 @@ export default function useChessGame() {
     setIsThinking(false);
   }, [playerColor, currentCoach, addCommentary, checkGameOver]);
 
+  // Complete a player move (used both for regular moves and after the user
+  // picks a promotion piece). Handles eval, commentary, and scheduling the
+  // bot reply.
+  const executePlayerMove = useCallback(async (from, to, promotion) => {
+    const g = gameRef.current;
+    const fenBefore = g.fen();
+    const newGame = new Chess(fenBefore);
+    const move = newGame.move({ from, to, promotion });
+    if (!move) return;
+
+    let newEval = 0;
+    try {
+      const postAnalysis = await engineRef.current.analyzePosition(newGame.fen());
+      newEval = postAnalysis.eval;
+    } catch (e) {
+      // Engine might not be ready
+    }
+
+    setGame(newGame);
+    setPosition(newGame.fen());
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    setLastMove({ from, to });
+    setMoveHistory(prev => [...prev, move]);
+
+    const chessBefore = new Chess(fenBefore);
+    if (currentCoach) {
+      const comment = generateCommentary({
+        chess: newGame,
+        chessBefore,
+        move,
+        isPlayerMove: true,
+        isPlayerWhite: playerColor === 'w',
+        evalBefore,
+        evalAfter: newEval,
+        coach: currentCoach,
+        moveNumber: newGame.moveNumber()
+      });
+      addCommentary(comment);
+    }
+
+    setEvalBefore(newEval);
+
+    if (checkGameOver(newGame)) return;
+    setTimeout(() => makeBotMove(newGame), 300);
+  }, [playerColor, currentCoach, evalBefore, addCommentary, checkGameOver, makeBotMove]);
+
+  // Called from the promotion modal with the piece the user picked ('q','r','b','n').
+  const choosePromotion = useCallback(async (piece) => {
+    if (!promotionPending) return;
+    const { from, to } = promotionPending;
+    setPromotionPending(null);
+    await executePlayerMove(from, to, piece);
+  }, [promotionPending, executePlayerMove]);
+
   // Handle square click for player moves
   const handleSquareClick = useCallback(async (square) => {
     if (gameStatus !== 'playing' || isThinking) return;
@@ -159,70 +215,24 @@ export default function useChessGame() {
 
     // If a piece is selected and clicking on a legal move target
     if (selectedSquare && legalMoves.includes(square)) {
-      // Save position before the move for commentary analysis
-      const fenBefore = g.fen();
-      const newGame = new Chess(g.fen());
-
-      // Check for promotion
-      const movingPiece = newGame.get(selectedSquare);
+      // Check for promotion — defer the move and let the user pick a piece.
+      const movingPiece = g.get(selectedSquare);
       const isPromotion = movingPiece?.type === 'p' &&
         ((movingPiece.color === 'w' && square[1] === '8') ||
          (movingPiece.color === 'b' && square[1] === '1'));
 
-      const move = newGame.move({
-        from: selectedSquare,
-        to: square,
-        promotion: isPromotion ? 'q' : undefined // Auto-promote to queen
-      });
-
-      if (!move) return;
-
-      // Get evaluation after player move
-      let newEval = 0;
-      try {
-        const postAnalysis = await engineRef.current.analyzePosition(newGame.fen());
-        newEval = postAnalysis.eval;
-      } catch (e) {
-        // Engine might not be ready
+      if (isPromotion) {
+        setPromotionPending({ from: selectedSquare, to: square });
+        return;
       }
 
-      setGame(newGame);
-      setPosition(newGame.fen());
-      setSelectedSquare(null);
-      setLegalMoves([]);
-      setLastMove({ from: selectedSquare, to: square });
-      setMoveHistory(prev => [...prev, move]);
-
-      // Generate player move commentary (with position before for blunder detection)
-      const chessBefore = new Chess(fenBefore);
-      if (currentCoach) {
-        const comment = generateCommentary({
-          chess: newGame,
-          chessBefore,
-          move,
-          isPlayerMove: true,
-          isPlayerWhite: playerColor === 'w',
-          evalBefore,
-          evalAfter: newEval,
-          coach: currentCoach,
-          moveNumber: newGame.moveNumber()
-        });
-        addCommentary(comment);
-      }
-
-      setEvalBefore(newEval);
-
-      // Check game over after player move
-      if (checkGameOver(newGame)) return;
-
-      // Schedule bot move
-      setTimeout(() => makeBotMove(newGame), 300);
+      await executePlayerMove(selectedSquare, square, undefined);
     } else {
       // Deselect
       setSelectedSquare(null);
       setLegalMoves([]);
     }
-  }, [gameStatus, isThinking, playerColor, selectedSquare, legalMoves, evalBefore, currentCoach, addCommentary, checkGameOver, makeBotMove]);
+  }, [gameStatus, isThinking, playerColor, selectedSquare, legalMoves, executePlayerMove]);
 
   // Start a new game
   const startGame = useCallback((coach, elo, color) => {
@@ -241,6 +251,7 @@ export default function useChessGame() {
     setGameResult(null);
     setIsThinking(false);
     setEvalBefore(0);
+    setPromotionPending(null);
 
     if (engineRef.current?.initialized) {
       engineRef.current.newGame();
@@ -282,6 +293,7 @@ export default function useChessGame() {
       to: movesToKeep[movesToKeep.length - 1].to
     } : null);
     setMoveHistory(movesToKeep);
+    setPromotionPending(null);
     addCommentary("Move taken back. Let's try a different approach!");
   }, [moveHistory, addCommentary]);
 
@@ -300,6 +312,8 @@ export default function useChessGame() {
     currentElo,
     currentCoach,
     engineReady,
+    promotionPending,
+    choosePromotion,
     handleSquareClick,
     startGame,
     resign,
